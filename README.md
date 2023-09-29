@@ -1,2 +1,2 @@
 # thoughts-smart-contracts
-Standard Openzeppelin contracts 
+All smart contrats used by Thoughts.ai 
