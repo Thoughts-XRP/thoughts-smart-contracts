@@ -3,11 +3,14 @@ pragma solidity ^0.8.0;
 
 import "./ThoughtEdition.sol";
 import "./IThoughtEdition.sol";
+import "./IThoughtEditionFactory.sol";
 import "../standard/Clones.sol";
 import "../standard/Ownable.sol";
 
-contract ThoughtEditionFactory is Ownable {
+
+contract ThoughtEditionFactory is Ownable, IThoughtEditionFactory {
     address public implementation;
+    string private editionBaseURI;
 
     // Mapping to store the editions published by each author
     mapping(address => address[]) public authorToEditions;
@@ -15,27 +18,20 @@ contract ThoughtEditionFactory is Ownable {
     // Mapping to track used salts
     mapping(bytes32 => bool) public salts;
 
-    // Events
-    event CloneDeployed(address indexed factory, address indexed owner, address indexed clone);
-
-    constructor() Ownable(msg.sender) {
+    constructor(string memory _editionBaseURI) Ownable(msg.sender) {
+        editionBaseURI = _editionBaseURI;
         // Set implementation contract.
-        implementation = address(new ThoughtEdition(address(this)));
+        implementation = address(new ThoughtEdition(address(this), editionBaseURI));
     }
 
     /// @notice Deploy a new writing edition clone with the sender as the owner.
     /// @param edition edition parameters used to deploy the clone.
-    function create(
-        IThoughtEdition.ThoughtEdition memory edition
-    ) external returns (address clone) {
+    function createEdition(IThoughtEdition.ThoughtEdition memory edition) override external returns (address clone) {
         clone = deployCloneAndInitialize(msg.sender, edition);
     }
 
     // Function to create a new blog
-    function deployCloneAndInitialize(
-        address owner,
-        IThoughtEdition.ThoughtEdition memory edition
-    ) internal returns (address clone) {
+    function deployCloneAndInitialize(address owner, IThoughtEdition.ThoughtEdition memory edition) internal returns (address clone) {
         // Generate a unique salt for deterministic deployment
         bytes32 salt = keccak256(abi.encodePacked(owner, edition.title, edition.description, edition.contentURI));
 
@@ -60,13 +56,17 @@ contract ThoughtEditionFactory is Ownable {
     }
 
     // Function to get the number of editions published by an author
-    function getAuthorEditionsCount(address author) external view returns (uint256) {
+    function getAuthorEditionsCount(address author) override external view returns (uint256) {
         return authorToEditions[author].length;
     }
 
     // Function to get the address of a specific edition published by an author
-    function getAuthorEdition(address author, uint256 index) external view returns (address) {
+    function getAuthorEdition(address author, uint256 index) override external view returns (address) {
         require(index < authorToEditions[author].length, "Index out of range");
         return authorToEditions[author][index];
+    }
+
+    function getAuthorEditions(address author) override external view returns (address[] memory) {
+        return authorToEditions[author];
     }
 }

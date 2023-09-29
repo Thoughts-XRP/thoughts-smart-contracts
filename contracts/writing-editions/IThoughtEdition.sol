@@ -10,6 +10,8 @@ interface IThoughtEdition {
         uint256 price;
     }
 
+    event ThoughtEditionPurchased(address indexed clone, uint256 tokenId, address indexed recipient, uint256 price);
+
     function initialize(address _owner, ThoughtEdition memory edition) external;
     function safeMint(address to) external;
     function purchase() external payable;

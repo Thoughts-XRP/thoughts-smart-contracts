@@ -31,19 +31,18 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
     uint256 public price;
 
     /// @notice Base URI for metadata.
-    string internal _baseMetadataURI;
-
-    // Events
-    event ThoughtEditionPurchased(address indexed clone, uint256 tokenId, address indexed recipient, uint256 price);
+    string internal baseMetadataURI;
 
     /// @notice Implementation logic for clones.
     /// @param _factory the factory contract deploying clones with this implementation.
-    constructor(address _factory) ERC721("ThoughtEdition", "THOUGHT") Ownable(address(0)) {
+    constructor(address _factory, string memory _baseMetadataURI) ERC721("ThoughtEdition", "THT") Ownable(address(0)) {
         // Assert not the zero-address.
         require(_factory != address(0), "must set factory");
 
         // Store factory.
         factory = _factory;
+        // Store baseURI
+        baseMetadataURI = _baseMetadataURI;
     }
 
     /// @notice Initialize a clone by storing edition parameters. Called only by the factory. 
@@ -75,7 +74,7 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
     }
 
     function purchase() override external payable {
-        require(msg.value == price * 1e6, "Incorrect funds to buy this edition");
+        require(msg.value == price, "Incorrect funds to buy this edition");
         require(balanceOf(msg.sender) == 0, "Sender have already purchased this edition");
         payable(owner).transfer(msg.value);
         uint256 tokenId = _tokenIdCounter.current();
@@ -107,17 +106,12 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
             bytes(
                 string(
                     abi.encodePacked(
-                        '{"name": "',
-                        _escapeQuotes(title),
-                        " ",
-                        Strings.toString(tokenId),
-                        '", "description": "',
-                        _escapeQuotes(getDescription()),
-                        '", "content": "ar://',
-                        contentURI,
-                        '", "image": "ipfs://',
-                        imageURI,
-                        '", "attributes":[{ "trait_type": "Serial", "value": ',
+                        '{"name": "', _escapeQuotes(title)," ", Strings.toString(tokenId),
+                        '", "description": "', _escapeQuotes(description),
+                        '", "content": ', contentURI,
+                        '", "external_url": ', getExternalURL(tokenId),
+                        '", "image": ', imageURI,
+                        '", "attributes":[{ "trait_type": "Edition Serial", "value": ',
                         Strings.toString(tokenId),
                         "}] }"
                     )
@@ -127,17 +121,9 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
         return string(abi.encodePacked("data:application/json;base64,", json));
     }
 
-    /// @notice Token description.
-    function getDescription() public view returns (string memory) {
-        return
-            string(
-                abi.encodePacked(
-                    "_getBaseDescriptionURI()",
-                    Strings.toString(block.chainid),
-                    "/",
-                    _addressToString(address(this))
-                )
-            );
+    /// @notice External Url.
+    function getExternalURL(uint256 tokenId) private view returns (string memory) {
+        return string(abi.encodePacked(baseMetadataURI, "/", _addressToString(address(this)), "/", Strings.toString(tokenId)));
     }
 
     // @notice Get Edition details
@@ -156,11 +142,11 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
     }
 
     function setBaseURI(string memory uri) external override onlyOwner {
-        _baseMetadataURI = uri;
+        baseMetadataURI = uri;
     }
 
     function _baseURI() internal view virtual override returns (string memory) {
-        return _baseMetadataURI;
+        return baseMetadataURI;
     }
 
     function _escapeQuotes(
