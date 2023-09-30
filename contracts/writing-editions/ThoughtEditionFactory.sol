@@ -18,6 +18,12 @@ contract ThoughtEditionFactory is Ownable, IThoughtEditionFactory {
     // Mapping to track used salts
     mapping(bytes32 => bool) public salts;
 
+    // Mapping to authors with their unique usernames
+    mapping(string => IThoughtEditionFactory.AuthorDetails) public authors;
+
+    // Mapping to author's address with their unique usernames
+    mapping(address => string) public authorAddressToUserName;
+
     constructor(string memory _editionBaseURI) Ownable(msg.sender) {
         editionBaseURI = _editionBaseURI;
         // Set implementation contract.
@@ -66,7 +72,43 @@ contract ThoughtEditionFactory is Ownable, IThoughtEditionFactory {
         return authorToEditions[author][index];
     }
 
+    // Function to get the addresses of editions published by an author
     function getAuthorEditions(address author) override external view returns (address[] memory) {
         return authorToEditions[author];
+    }
+
+    // Function to check if a username is available
+    function isUsernameAvailable(string memory userName) public view returns (bool) {
+        return authors[userName].walletAddress == address(0);
+    }
+
+    // Function to fetch author details from userName
+    function getAuthorDetails(string memory userName) public view returns (IThoughtEditionFactory.AuthorDetails memory) {
+        return authors[userName];
+    }
+
+    // Function to fetch author details 
+    function getAuthorDetails() public view returns (IThoughtEditionFactory.AuthorDetails memory) {
+        return authors[authorAddressToUserName[msg.sender]];
+    }
+
+    // Function to fetch author userName 
+    function getAuthorUserName() public view returns (string memory) {
+        return authorAddressToUserName[msg.sender];
+    }
+
+    // Function to register author
+    function registerAuthor(string memory userName, string memory name) public {
+       require(isUsernameAvailable(userName), "Username is already taken");
+        
+        IThoughtEditionFactory.AuthorDetails memory author = IThoughtEditionFactory.AuthorDetails({
+            userName: userName,
+            name: name,
+            walletAddress: msg.sender
+        });
+
+        authors[userName] = author;
+        authorAddressToUserName[msg.sender] = userName;
+        emit AuthorRegistered(userName, msg.sender, name);
     }
 }
