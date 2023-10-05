@@ -8,6 +8,7 @@ import "../standard/Ownable.sol";
 import "../standard/Base64.sol";
 import "../standard/Counters.sol";
 import "./IThoughtEdition.sol";
+import "./IThoughtEditionFactory.sol";
 
 contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IThoughtEdition {
 
@@ -18,9 +19,6 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
     /// @notice Token title.
     string public title;
 
-    /// @notice Token description.
-    string public description;
-
     /// @notice Token text content, stored in IPFS.
     string private contentURI;
 
@@ -29,6 +27,9 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
 
     /// @notice Token price, set by the owner.
     uint256 public price;
+
+    /// @notice Token creation timpestamp.
+    uint256 public createdAt;
 
     /// @notice Base URI for metadata.
     string internal baseMetadataURI;
@@ -54,10 +55,10 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
 
         // Store edition data.
         title = edition.title;
-        description = edition.description;
         imageURI = edition.imageURI;
         contentURI = edition.contentURI;
         price = edition.price;
+        createdAt = edition.createdAt;
         
         // Store owner.
         _setInitialOwner(_owner);
@@ -80,7 +81,7 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         _safeMint(msg.sender, tokenId);
-
+        IThoughtEditionFactory(factory).registerClaim(msg.sender);
         emit ThoughtEditionPurchased(msg.sender, tokenId, msg.sender, price);
     }
 
@@ -107,8 +108,7 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
                 string(
                     abi.encodePacked(
                         '{"name": "', _escapeQuotes(title)," ", Strings.toString(tokenId),
-                        '", "description": "', _escapeQuotes(description),
-                        '", "content": ', contentURI,
+                        '", "description": "', description(),
                         '", "external_url": ', getExternalURL(tokenId),
                         '", "image": ', imageURI,
                         '", "attributes":[{ "trait_type": "Edition Serial", "value": ',
@@ -126,6 +126,11 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
         return string(abi.encodePacked(baseMetadataURI, "/", _addressToString(address(this)), "/", Strings.toString(tokenId)));
     }
 
+    /// @notice Edition details
+    function description() private view returns (string memory) {
+        return string(abi.encodePacked("Edition Title: ", title, ", Edition Owner: ", owner, ", Edition Price: ", price,  ", Total Purchased: ", totalSupply()));
+    }
+
     // @notice Get Edition details
     function getEdition() external view override returns (ThoughtEdition memory) {
         string memory _contentURI = "";
@@ -134,10 +139,11 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
         } 
         return ThoughtEdition({
             title: title,
-            description: description,
             imageURI: imageURI,
             contentURI: _contentURI,
-            price: price
+            price: price,
+            createdAt: createdAt, 
+            totalPurchased: totalSupply()
         });
     }
 

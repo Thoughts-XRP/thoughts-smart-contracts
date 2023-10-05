@@ -4,10 +4,11 @@ pragma solidity ^0.8.0;
 interface IThoughtEdition {
     struct ThoughtEdition {
         string title;
-        string description;
         string imageURI;
         string contentURI;
         uint256 price;
+        uint256 createdAt;
+        uint256 totalPurchased;
     }
 
     event ThoughtEditionPurchased(address indexed clone, uint256 tokenId, address indexed recipient, uint256 price);

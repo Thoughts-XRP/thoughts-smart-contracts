@@ -15,6 +15,12 @@ contract ThoughtEditionFactory is Ownable, IThoughtEditionFactory {
     // Mapping to store the editions published by each author
     mapping(address => address[]) public authorToEditions;
 
+    // Mapping to check an edition exists
+    mapping(address => bool) public editionExists;
+
+    // Mapping to store buyers of editions
+    mapping(address => address[]) public buyerToEditions;
+
     // Mapping to track used salts
     mapping(bytes32 => bool) public salts;
 
@@ -31,15 +37,23 @@ contract ThoughtEditionFactory is Ownable, IThoughtEditionFactory {
     }
 
     /// @notice Deploy a new writing edition clone with the sender as the owner.
-    /// @param edition edition parameters used to deploy the clone.
-    function createEdition(IThoughtEdition.ThoughtEdition memory edition) override external returns (address clone) {
+    function createEdition(string memory title, string memory imageURI, string memory contentURI, uint256 price) override external returns (address clone) {
+        IThoughtEdition.ThoughtEdition memory edition = IThoughtEdition.ThoughtEdition({
+                                                            title: title,
+                                                            imageURI: imageURI,
+                                                            contentURI: contentURI,
+                                                            price: price, 
+                                                            createdAt: block.timestamp,
+                                                            totalPurchased: 0
+                                                        });
         clone = deployCloneAndInitialize(msg.sender, edition);
+        editionExists[clone] = true;
     }
 
     // Function to create a new blog
     function deployCloneAndInitialize(address owner, IThoughtEdition.ThoughtEdition memory edition) internal returns (address clone) {
         // Generate a unique salt for deterministic deployment
-        bytes32 salt = keccak256(abi.encodePacked(owner, edition.title, edition.description, edition.contentURI));
+        bytes32 salt = keccak256(abi.encodePacked(owner, edition.title, edition.createdAt, edition.contentURI));
 
         // Check if the salt has already been used
         require(!salts[salt], "Edition with the same salt already exists");
@@ -88,7 +102,7 @@ contract ThoughtEditionFactory is Ownable, IThoughtEditionFactory {
     }
 
     // Function to fetch author details 
-    function getAuthorDetails() public view returns (IThoughtEditionFactory.AuthorDetails memory) {
+    function getAuthorDetailsByAddress() public view returns (IThoughtEditionFactory.AuthorDetails memory) {
         return authors[authorAddressToUserName[msg.sender]];
     }
 
@@ -98,17 +112,29 @@ contract ThoughtEditionFactory is Ownable, IThoughtEditionFactory {
     }
 
     // Function to register author
-    function registerAuthor(string memory userName, string memory name) public {
+    function registerAuthor(string memory userName, string memory name, string memory description) public {
        require(isUsernameAvailable(userName), "Username is already taken");
         
         IThoughtEditionFactory.AuthorDetails memory author = IThoughtEditionFactory.AuthorDetails({
             userName: userName,
             name: name,
-            walletAddress: msg.sender
+            walletAddress: msg.sender,
+            description: description
         });
 
         authors[userName] = author;
         authorAddressToUserName[msg.sender] = userName;
         emit AuthorRegistered(userName, msg.sender, name);
+    }
+
+    // Funtion to register claim
+    function registerClaim(address buyer) override external {
+        require(editionExists[msg.sender],"This function can olny be called by edition contracts");
+        buyerToEditions[buyer].push(msg.sender);
+    }
+
+    // Function to get claimed edtions
+    function getClaimedEditions(address buyer) override external view returns (address[] memory) {
+        return buyerToEditions[buyer];
     }
 }
