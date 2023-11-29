@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "../standard/IERC20.sol";
 import "../standard/ERC721.sol";
 import "../standard/ERC721Enumerable.sol";
 import "../standard/ERC721Burnable.sol";
@@ -28,11 +29,14 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
     /// @notice Token price, set by the owner.
     uint256 public price;
 
+    /// @notice Token accepts erc20 as payment, set by the owner.
+    address public paymentERC20Addr;
+
     /// @notice Token creation timpestamp.
     uint256 public createdAt;
 
     /// @notice Base URI for metadata.
-    string internal baseMetadataURI;
+    string public baseMetadataURI;
 
     /// @notice If edition is blacklisted.
     bool public isBlacklisted;
@@ -61,6 +65,7 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
         imageURI = edition.imageURI;
         contentURI = edition.contentURI;
         price = edition.price;
+        paymentERC20Addr = edition.paymentERC20Addr;
         createdAt = edition.createdAt;
         
         // Store owner.
@@ -77,17 +82,38 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
         _safeMint(to, tokenId);
     }
 
-    function purchase() override external payable {
-        require(msg.value == price, "Incorrect funds to buy this edition");
+    modifier checkPurchase() {
         require(balanceOf(msg.sender) == 0, "Sender have already purchased this edition");
-        payable(owner).transfer(msg.value);
+        require(paymentERC20Addr == address(0), "Native TRX payment not supported");
+        require(msg.value == price, "Incorrect funds to buy this edition");
+        _;
+    }
+
+    modifier checkPurchaseERC20() {
+        require(balanceOf(msg.sender) == 0, "Sender have already purchased this edition");
+        require(paymentERC20Addr != address(0), "ERC20 payment not supported");
+        require(IERC20(paymentERC20Addr).allowance(msg.sender, address(this)) >= price, "ERC20 payment not supported");
+        _;
+    }
+
+    function mintEdition() private {
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         _safeMint(msg.sender, tokenId);
         IThoughtEditionFactory(factory).registerClaim(msg.sender);
-        emit ThoughtEditionPurchased(msg.sender, tokenId, msg.sender, price);
+        emit ThoughtEditionPurchased(msg.sender, tokenId, msg.sender, price, paymentERC20Addr);
     }
 
+    function purchase() override external payable checkPurchase {
+        payable(owner).transfer(msg.value);
+        mintEdition();
+    }
+
+    function purchaseERC20() override external checkPurchaseERC20 {
+       IERC20(paymentERC20Addr).transferFrom(msg.sender, payable(owner), price);
+       mintEdition();
+    }
+    
     // The following functions are overrides required by Solidity.
     function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize) internal override(ERC721, ERC721Enumerable) {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
@@ -131,7 +157,7 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
 
     /// @notice Edition details
     function description() private view returns (string memory) {
-        return string(abi.encodePacked("Edition Title: ", title, ", Edition Owner: ", owner, ", Edition Price: ", price,  ", Total Purchased: ", totalSupply()));
+        return string(abi.encodePacked("Edition Title: ", title, ", Edition Owner: ",  _addressToString(address(owner)), ", Edition Price: ", Strings.toString(price),  ", Total Purchased: ", Strings.toString(totalSupply())));
     }
 
     // @notice Get Edition details
@@ -145,6 +171,7 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
             imageURI: imageURI,
             contentURI: _contentURI,
             price: price,
+            paymentERC20Addr: paymentERC20Addr,
             createdAt: createdAt, 
             totalPurchased: totalSupply()
         });

@@ -13,8 +13,7 @@ interface IThoughtEditionFactory {
 
     event CloneDeployed(address indexed factory, address indexed owner, address indexed clone);
     event AuthorRegistered(string indexed userName, address indexed authorAddress, string name);
-
-    function createEdition(string memory title, string memory imageURI, string memory contentURI, uint256 price) external returns (address clone);
+    function createEdition(string memory title, string memory imageURI, string memory contentURI, uint256 price, address paymentERC20Addr) external returns (address clone);
     function getAuthorEditionsCount(address author) external view returns (uint256);
     function getAuthorEdition(address author, uint256 index) external view returns (address);
     function getAuthorEditions(address author) external view returns (address[] memory);

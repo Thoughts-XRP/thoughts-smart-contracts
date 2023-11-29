@@ -7,7 +7,6 @@ import "./IThoughtEditionFactory.sol";
 import "../standard/Clones.sol";
 import "../standard/Ownable.sol";
 
-
 contract ThoughtEditionFactory is Ownable, IThoughtEditionFactory {
     address public implementation;
     string private editionBaseURI;
@@ -33,16 +32,17 @@ contract ThoughtEditionFactory is Ownable, IThoughtEditionFactory {
     constructor(string memory _editionBaseURI) Ownable(msg.sender) {
         editionBaseURI = _editionBaseURI;
         // Set implementation contract.
-        implementation = address(new ThoughtEdition(address(this), editionBaseURI));
+        implementation = address(new ThoughtEdition(address(this), _editionBaseURI));
     }
 
     /// @notice Deploy a new writing edition clone with the sender as the owner.
-    function createEdition(string memory title, string memory imageURI, string memory contentURI, uint256 price) override external returns (address clone) {
+    function createEdition(string memory title, string memory imageURI, string memory contentURI, uint256 price, address paymentERC20Addr) override external returns (address clone) {
         IThoughtEdition.ThoughtEdition memory edition = IThoughtEdition.ThoughtEdition({
                                                             title: title,
                                                             imageURI: imageURI,
                                                             contentURI: contentURI,
                                                             price: price, 
+                                                            paymentERC20Addr: paymentERC20Addr,
                                                             createdAt: block.timestamp,
                                                             totalPurchased: 0
                                                         });
