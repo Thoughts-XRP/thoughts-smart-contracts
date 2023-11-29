@@ -20,4 +20,5 @@ interface IThoughtEditionFactory {
     function getAuthorEditions(address author) external view returns (address[] memory);
     function registerClaim(address buyer) external;
     function getClaimedEditions(address buyer) external view returns (address[] memory);
+    function setBlacklisted(address edition, bool val) external;
 }

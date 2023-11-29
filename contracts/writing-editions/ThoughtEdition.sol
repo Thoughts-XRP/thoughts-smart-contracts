@@ -34,6 +34,9 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
     /// @notice Base URI for metadata.
     string internal baseMetadataURI;
 
+    /// @notice If edition is blacklisted.
+    bool public isBlacklisted;
+
     /// @notice Implementation logic for clones.
     /// @param _factory the factory contract deploying clones with this implementation.
     constructor(address _factory, string memory _baseMetadataURI) ERC721("ThoughtEdition", "THT") Ownable(address(0)) {
@@ -199,5 +202,11 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
     function _char(bytes1 b) internal pure returns (bytes1 c) {
         if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
         else return bytes1(uint8(b) + 0x57);
+    }
+
+    function setBlacklisted(bool val) external override {
+        // Only factory can call this function.
+        require(msg.sender == factory, "unauthorized caller");
+        isBlacklisted = val;
     }
 }

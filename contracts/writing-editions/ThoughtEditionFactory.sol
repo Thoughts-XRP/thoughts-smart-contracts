@@ -137,4 +137,10 @@ contract ThoughtEditionFactory is Ownable, IThoughtEditionFactory {
     function getClaimedEditions(address buyer) override external view returns (address[] memory) {
         return buyerToEditions[buyer];
     }
+
+    // Function to blacklist an edition
+    function setBlacklisted(address edition, bool val) override external onlyOwner { 
+        IThoughtEdition editionContract = IThoughtEdition(edition);
+        editionContract.setBlacklisted(val);
+    }
 }
