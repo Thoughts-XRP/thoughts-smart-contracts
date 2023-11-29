@@ -22,4 +22,5 @@ interface IThoughtEdition {
     function getContentURI() external view returns (string memory);
     function getEdition() external view returns (ThoughtEdition memory);
     function setBlacklisted(bool val) external;
+    function updateEdition(string memory _contentURI, string memory _imageURI) external;
 }

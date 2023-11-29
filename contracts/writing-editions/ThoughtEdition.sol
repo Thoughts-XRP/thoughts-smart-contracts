@@ -236,4 +236,9 @@ contract ThoughtEdition is ERC721, ERC721Enumerable, ERC721Burnable, Ownable, IT
         require(msg.sender == factory, "unauthorized caller");
         isBlacklisted = val;
     }
+
+    function updateEdition(string memory _contentURI, string memory _imageURI) external override onlyOwner {
+        contentURI = _contentURI;
+        imageURI = _imageURI;
+    }
 }
